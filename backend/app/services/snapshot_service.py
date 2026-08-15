@@ -32,9 +32,6 @@ final database-level guard and must not be removed (SRS US-9).
 """
 
 import logging
-from datetime import date
-
-from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 

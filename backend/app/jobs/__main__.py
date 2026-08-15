@@ -19,7 +19,6 @@ No HTTP endpoint exists for snapshot generation (SRS §6, R9).
 import argparse
 import logging
 import sys
-from datetime import date
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -36,7 +35,7 @@ def main() -> None:
         help="Target date to snapshot (default: yesterday IST)",
         default=None,
     )
-    args = parser.parse_args()
+    parser.parse_args()
 
     # TODO: resolve target_date (parse args.date or compute yesterday IST via zoneinfo)
     # TODO: open a DB session

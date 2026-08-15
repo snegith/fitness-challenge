@@ -24,7 +24,6 @@ from sqlalchemy.exc import IntegrityError
 
 from app.db.models import Activity, LeaderboardEntry, LeaderboardSnapshot, User
 
-
 # ── helpers ───────────────────────────────────────────────────────────────────
 
 def _make_user(db, *, first="Ada", last="Lovelace", name_key=None):

@@ -8,7 +8,6 @@ Covers:
 
 from pydantic import BaseModel
 
-
 # ── Requests ──────────────────────────────────────────────────────────────────
 
 class RegisterRequest(BaseModel):

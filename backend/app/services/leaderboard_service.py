@@ -13,6 +13,4 @@ Responsibilities:
 This service does NOT generate snapshots — that is snapshot_service's job.
 """
 
-from sqlalchemy.orm import Session
-
 # TODO: implement get_live_leaderboard()
