@@ -8,49 +8,71 @@ main.py's only interaction with this module is:
 This module is solely responsible for:
     - Creating the APScheduler instance.
     - Registering the daily snapshot job with a CronTrigger at 00:00 IST.
-    - Binding the trigger to snapshot_service.generate_daily_snapshot.
     - Computing target_date = (current IST date − 1 day) before passing to the
-      service, so the snapshot represents the completed previous day (SRS FR-12,
-      R13).
+      snapshot service.
     - Starting and stopping the scheduler.
 
-main.py must NOT contain any of the above — it only calls start_scheduler(app).
-
-Scheduler configuration:
-    Trigger : CronTrigger(hour=0, minute=0, timezone="Asia/Kolkata")
-    Job     : generate_daily_snapshot(db, target_date=yesterday_ist)
-    In-process: APScheduler runs inside the FastAPI process (single-server scope).
-
-Known trade-off (concern C2):
-    If the server restarts at exactly 00:00 IST, the scheduled job could be missed.
-    Acceptable at assignment scale; the CLI trigger covers manual recovery.
+main.py has zero knowledge of job functions, timezones, or trigger types.
 """
 
+import atexit
 import logging
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 from fastapi import FastAPI
 
+from app.config import settings
+
 logger = logging.getLogger(__name__)
+
+_IST = ZoneInfo(settings.timezone)
+_scheduler: BackgroundScheduler | None = None
+
+
+def _run_daily_snapshot() -> None:
+    """
+    Job function invoked by APScheduler at 00:00 IST.
+
+    Computes target_date = yesterday IST, opens a DB session, and calls
+    generate_daily_snapshot().
+    """
+    from app.db.database import SessionLocal
+    from app.services.snapshot_service import generate_daily_snapshot
+
+    yesterday = datetime.now(tz=_IST).date() - timedelta(days=1)
+    logger.info("Scheduler firing snapshot job for target_date=%s", yesterday)
+
+    db = SessionLocal()
+    try:
+        generate_daily_snapshot(db, yesterday)
+    except Exception:
+        logger.exception("Snapshot job failed for target_date=%s", yesterday)
+    finally:
+        db.close()
 
 
 def start_scheduler(app: FastAPI) -> None:
     """
     Start the APScheduler background scheduler and register the daily snapshot job.
 
-    Called once from app.main lifespan.  This module owns ALL scheduler config:
-        - APScheduler instance creation
-        - CronTrigger(hour=0, minute=0, timezone="Asia/Kolkata")
-        - Job registration → snapshot_service.generate_daily_snapshot
-        - Scheduler shutdown
-
-    main.py has zero knowledge of job functions, timezones, or trigger types.
-
-    TODO: implement fully — currently a no-op stub so the import resolves.
+    Called once from app.main lifespan.
     """
-    # TODO: create BackgroundScheduler with Asia/Kolkata timezone
-    # TODO: register snapshot job with CronTrigger(hour=0, minute=0)
-    # TODO: job wrapper: open DB session, compute target_date = yesterday IST,
-    #       call snapshot_service.generate_daily_snapshot(db, target_date)
-    # TODO: scheduler.start()
-    # TODO: register shutdown handler
-    logger.info("Scheduler start_scheduler() called — not yet implemented")
+    global _scheduler
+
+    _scheduler = BackgroundScheduler(timezone=_IST)
+    _scheduler.add_job(
+        _run_daily_snapshot,
+        trigger=CronTrigger(hour=0, minute=0, timezone=_IST),
+        id="daily_snapshot",
+        replace_existing=True,
+    )
+    _scheduler.start()
+    atexit.register(
+        lambda: _scheduler.shutdown(wait=False)
+        if _scheduler and _scheduler.running
+        else None
+    )
+    logger.info("Scheduler started — daily snapshot job registered at 00:00 IST.")
