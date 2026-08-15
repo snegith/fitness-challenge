@@ -270,24 +270,18 @@ class TestDashboardOwnership:
     def test_own_dashboard_auth_and_ownership_pass(self, client, db_session):
         """
         Valid token accessing own dashboard passes auth + ownership check.
-        Dashboard aggregation is not implemented in PR #4 — the endpoint raises
-        NotImplementedError after the ownership check passes.
-        The important assertion is that it does NOT return 401 or 403.
+        Dashboard returns 200 with empty data for a user with no activities.
         """
-        import pytest
-
         resp = _register(client, "Ada", "Lovelace")
         user_id = resp.json()["userId"]
         token = resp.json()["token"]
 
-        # The endpoint raises NotImplementedError after passing auth + ownership.
-        # TestClient propagates server exceptions — we catch it to confirm
-        # the auth/ownership layer did not reject the request.
-        with pytest.raises(NotImplementedError):
-            client.get(
-                f"/api/users/{user_id}/dashboard",
-                headers={"Authorization": f"Bearer {token}"},
-            )
+        dash = client.get(
+            f"/api/users/{user_id}/dashboard",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert dash.status_code == 200
+        assert dash.json()["totalPoints"] == 0
 
     def test_other_user_dashboard_returns_403(self, client, db_session):
         r1 = _register(client, "Ada", "Lovelace")
