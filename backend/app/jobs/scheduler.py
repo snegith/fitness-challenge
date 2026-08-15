@@ -28,15 +28,29 @@ Known trade-off (concern C2):
 
 import logging
 
-from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
 
 logger = logging.getLogger(__name__)
 
-# TODO: implement start_scheduler(app: FastAPI) -> None
-#       - create BackgroundScheduler with Asia/Kolkata timezone
-#       - register snapshot job with CronTrigger(hour=0, minute=0)
-#       - job wrapper: open a DB session, compute target_date = yesterday IST,
-#         call snapshot_service.generate_daily_snapshot(db, target_date)
-#       - scheduler.start()
-#       - register shutdown on FastAPI shutdown event or atexit
+
+def start_scheduler(app: FastAPI) -> None:
+    """
+    Start the APScheduler background scheduler and register the daily snapshot job.
+
+    Called once from app.main lifespan.  This module owns ALL scheduler config:
+        - APScheduler instance creation
+        - CronTrigger(hour=0, minute=0, timezone="Asia/Kolkata")
+        - Job registration → snapshot_service.generate_daily_snapshot
+        - Scheduler shutdown
+
+    main.py has zero knowledge of job functions, timezones, or trigger types.
+
+    TODO: implement fully — currently a no-op stub so the import resolves.
+    """
+    # TODO: create BackgroundScheduler with Asia/Kolkata timezone
+    # TODO: register snapshot job with CronTrigger(hour=0, minute=0)
+    # TODO: job wrapper: open DB session, compute target_date = yesterday IST,
+    #       call snapshot_service.generate_daily_snapshot(db, target_date)
+    # TODO: scheduler.start()
+    # TODO: register shutdown handler
+    logger.info("Scheduler start_scheduler() called — not yet implemented")
