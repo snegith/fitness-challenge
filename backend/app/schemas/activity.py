@@ -4,37 +4,20 @@ Pydantic request/response schemas for the activity endpoint.
 Covers:
     POST /api/activities  (SRS FR-6, FR-7, FR-8, FR-9, FR-10)
 
-TEMPORARY DEVIATION — userId in request body:
-    The finalized SRS (FR-5, §8) requires userId to be derived from the
-    session/Bearer token, never accepted from the request body.
+userId is derived from the Bearer token via the authentication dependency.
+It is NOT accepted from the request body (SRS FR-5).
 
-    For this development unit only, userId is accepted in the request body
-    because session-token authentication is deferred to a later unit.
-
-    The authentication unit MUST:
-        1. Remove userId from this schema.
-        2. Require Bearer token on POST /api/activities.
-        3. Derive userId exclusively from the verified token.
-        4. Update all relevant tests.
+recordedAt is ALWAYS server-generated (SRS §2.3, §8, R11).
+It is NOT accepted from the client.  Any client-supplied recordedAt is rejected
+with 400 via extra='forbid'.
 
 Metric field validation (SRS §8):
     distance sports  → distanceKm required (> 0), durationSec/stepCount absent
     duration sports  → durationSec required (≥ 0), distanceKm/stepCount absent
     daily_steps      → stepCount required (≥ 0), distanceKm/durationSec absent
 
-Extra fields (points, activityDate, …) → rejected by model_config extra='forbid'.
-
-Alias style note:
-    Fields use the standard Pydantic v2 `field: type = Field(..., alias="...")` form.
-    Using `Annotated[type, Field(alias=...)]` triggers an UnsupportedFieldAttributeWarning
-    in Pydantic v2.12 because the alias metadata inside Annotated is treated as
-    annotation-level (not field-level) in certain schema-build code paths.
-    The plain assignment form is idiomatic, warning-free, and behaviorally identical.
-    NOTE: The warning still fires at runtime via FastAPI's internal schema resolution
-    (fastapi/_compat.py wraps fields as Annotated[type, FieldInfo] when building
-    the request body TypeAdapter). This is a FastAPI 0.115.5 + Pydantic 2.12
-    incompatibility and cannot be eliminated without changing either library version.
-    See completion report for full analysis.
+Extra fields (points, userId, recordedAt, activityDate, …) → rejected by
+model_config extra='forbid'.
 """
 
 from typing import Self
@@ -55,23 +38,17 @@ class ActivityRequest(BaseModel):
     """
     Request body for POST /api/activities.
 
-    TEMPORARY: userId accepted from body until auth unit is implemented.
+    userId is NOT accepted — it comes from the verified Bearer token (SRS FR-5).
+    recordedAt is NOT accepted — it is server-generated (SRS §8, R11).
 
     Valid sport/metric combinations (SRS §8):
         running/walking/cycling  → distanceKm (float > 0)
         swimming/gym             → durationSec (int ≥ 0)
-        daily_steps              → stepCount (int ≥ 0), recordedAt optional
+        daily_steps              → stepCount (int ≥ 0)
 
-    recordedAt is accepted from the client for this unit and represents when
-    the activity occurred.  For daily_steps it is optional; if omitted the
-    service layer uses the current IST date.
-
-    Points must NOT be supplied by the client — extra='forbid' ensures any
-    attempt to pass 'points' returns 400 (SRS §7, project rule §4).
+    extra='forbid' rejects any field not declared here, including:
+        points, userId, recordedAt, activityDate, etc.
     """
-
-    # TEMPORARY — remove when auth unit is implemented (see module docstring)
-    user_id: int = Field(..., alias="userId")
 
     sport_type: str = Field(..., alias="sportType")
 
@@ -80,14 +57,9 @@ class ActivityRequest(BaseModel):
     duration_sec: int | None = Field(None, alias="durationSec")
     step_count: int | None = Field(None, alias="stepCount")
 
-    # recordedAt — client-supplied timestamp (when the activity occurred).
-    # For daily_steps this is optional; for all other sports it is required
-    # (validated in the cross-field validator below).
-    recorded_at: str | None = Field(None, alias="recordedAt")
-
     model_config = {
         "populate_by_name": True,
-        # Reject any extra fields (including client-supplied 'points') → 400
+        # Reject ANY extra field (userId, points, recordedAt, activityDate…) → 400
         "extra": "forbid",
     }
 
@@ -102,7 +74,7 @@ class ActivityRequest(BaseModel):
                 f"Must be one of: {sorted(ALL_SPORTS)}."
             )
 
-        # 2. Enforce exactly the right metric field for the sport; reject the wrong ones
+        # 2. Enforce exactly the right metric field for the sport
         if sport in DISTANCE_SPORTS:
             if self.duration_sec is not None:
                 raise ValueError(
@@ -119,10 +91,6 @@ class ActivityRequest(BaseModel):
             if self.distance_km <= 0:
                 raise ValueError(
                     f"distanceKm must be > 0 for sportType '{sport}'."
-                )
-            if self.recorded_at is None:
-                raise ValueError(
-                    f"recordedAt is required for sportType '{sport}'."
                 )
 
         elif sport in DURATION_SPORTS:
@@ -142,10 +110,6 @@ class ActivityRequest(BaseModel):
                 raise ValueError(
                     f"durationSec must be ≥ 0 for sportType '{sport}'."
                 )
-            if self.recorded_at is None:
-                raise ValueError(
-                    f"recordedAt is required for sportType '{sport}'."
-                )
 
         elif sport in STEPS_SPORTS:
             if self.distance_km is not None:
@@ -164,7 +128,6 @@ class ActivityRequest(BaseModel):
                 raise ValueError(
                     "stepCount must be ≥ 0 for sportType 'daily_steps'."
                 )
-            # recordedAt is optional for daily_steps
 
         return self
 
@@ -176,6 +139,7 @@ class ActivityResponse(BaseModel):
     Success response for a newly created activity (201).
 
     Shape: {activityId, sportType, points, recordedAt}
+    recordedAt is server-generated UTC — never echoed from the request.
     """
 
     activity_id: int = Field(..., alias="activityId")
@@ -191,6 +155,7 @@ class ActivityUpsertResponse(BaseModel):
     Success response for a daily_steps update (200).
 
     Shape: {activityId, sportType, points, recordedAt, updated: true}
+    recordedAt is server-generated UTC.
     """
 
     activity_id: int = Field(..., alias="activityId")
