@@ -199,8 +199,12 @@ CREATE TABLE activities (
   duration_sec   INTEGER,               -- set only when metric_type = 'duration'
   step_count     INTEGER,               -- set only when metric_type = 'count'
   points         INTEGER NOT NULL,
-  recorded_at    TEXT NOT NULL,         -- ISO 8601 UTC, server-generated (never client-supplied — see §8)
-  activity_date  TEXT NOT NULL,         -- IST calendar date 'YYYY-MM-DD', computed by the backend from recorded_at at write time
+  recorded_at    TEXT NOT NULL,         -- ISO 8601 instant the activity was recorded
+  activity_date  TEXT NOT NULL,         -- IST calendar date ('YYYY-MM-DD'), computed in Python
+                                         -- (zoneinfo "Asia/Kolkata") at write time — NEVER via a
+                                         -- SQL date expression. This is the sole basis for all
+                                         -- day-bucketing: daily-steps upsert, volumeOverTime,
+                                         -- and the snapshot filter in §9.3.
   created_at     TEXT NOT NULL DEFAULT (datetime('now')),
   CHECK (
     (metric_type = 'distance' AND distance_km IS NOT NULL AND duration_sec IS NULL AND step_count IS NULL) OR
@@ -209,9 +213,8 @@ CREATE TABLE activities (
   )
 );
 CREATE INDEX idx_activities_user_recorded ON activities(user_id, recorded_at);
-CREATE INDEX idx_activities_user_date ON activities(user_id, activity_date);  -- powers volumeOverTime bucketing too
 
--- Only ONE daily_steps row per user per IST calendar day (enables the upsert in FR-10)
+-- Only ONE daily_steps row per user per IST calendar day
 CREATE UNIQUE INDEX idx_daily_steps_unique
   ON activities(user_id, activity_date)
   WHERE sport_type = 'daily_steps';
@@ -337,8 +340,9 @@ Points are computed at write time and stored — not recomputed on read — exce
 - Tie-break 2: `userId` ascending.
 
 ### 9.3 Rank Trend
-- Computed only at read time for the live `GET /api/leaderboard` response: `rankTrend = mostRecentSnapshotRank − currentLiveRank`.
-- `null` when no snapshot exists yet for that user (e.g. registered after the last snapshot ran).
+Computed only at read time for the live GET /api/leaderboard response: rankTrend = mostRecentSnapshotRank − currentLiveRank. null when no snapshot exists yet for that user.
+
+Snapshot generation rule: generate_daily_snapshot(target_date) computes the leaderboard using only activities whose activity_date <= target_date. This applies whether the function is invoked by the scheduler (where target_date is always "yesterday" relative to the 00:00 IST trigger) or manually via the CLI for a backdated date. A run for target_date = Aug 13 triggered on Aug 16 must exclude any activity dated Aug 14–16 — the snapshot always reflects the state as of the end of target_date, regardless of when generation actually happens. This is what makes the scheduler path and the CLI path produce identical results for the same target_date, satisfying NFR-7.
 
 ---
 
@@ -410,6 +414,7 @@ since the token is a stateless JWT).
 - Snapshot generation produces one `leaderboard_snapshots` row + N `leaderboard_entries` rows.
 - Re-running snapshot generation for a target date that already has a snapshot does not create a duplicate (`UNIQUE(snapshot_date)` enforced, verify rejection/no-op behavior).
 - `rankTrend` on live leaderboard correctly reflects a seeded prior-day snapshot, using `previousRank − currentRank`.
+- A manually-triggered snapshot for a backdated target_date must include only activities with activity_date <= target_date, and must exclude any activity recorded after target_date even though it already exists in the table at generation time.
 
 ### 11.6 Concurrency
 - Two simultaneous registration requests with identical names → exactly one succeeds, one returns `409`.
@@ -445,7 +450,7 @@ since the token is a stateless JWT).
 | R5 | Rank trend requires historical snapshots | Required a schema addition (`leaderboard_snapshots`, `leaderboard_entries`) | — | Resolved |
 | R6 | Daily steps use replace (not increment) semantics; points recalculated on the existing row | Client confirmed device sends cumulative daily total | If this assumption is wrong, totals would silently overwrite valid data instead of accumulating | Resolved |
 | R7 | DB `CHECK` allows `≥ 0` on metric fields; API layer separately rejects `≤ 0` | Intentional layering — DB enforces structural validity, API enforces business validity | Low — documented so it doesn't read as inconsistent in review | Accepted (documented) |
-| R8 | Local-run deployment with setup instructions, not a hosted public URL | Assignment requires a public **repo**, not explicit hosting | If a live URL is expected, additional deploy time is needed, not currently budgeted | Open — confirm if unclear |
+| R8 | Local-run deployment with setup instructions, not a hosted public URL | Assignment requires a public **repo**, not explicit hosting | NEOGOV confirmed no hosting or deployment target is required; a local-run submission with setup instructions is sufficient | Resolved |
 | R9 | No HTTP endpoint for snapshot generation; CLI + scheduler share one function instead | Avoids an unauthenticated (or under-specified-auth) write surface once tokens are in the picture | None identified — CLI trigger fully covers testing/demo needs | Resolved |
 | R10 | JWT expiry set to 24h, no refresh-token flow | "Basic" auth scope explicitly agreed; refresh flows are out of scope for optional/bonus work | User re-logs-in (name lookup) after expiry — low friction given no password | Accepted (documented) |
 | R11 | `recordedAt` is server-generated only; client cannot supply or backdate it | Removes timezone-interpretation ambiguity and a leaderboard-gaming vector (backdating activities) | None identified | Resolved |
