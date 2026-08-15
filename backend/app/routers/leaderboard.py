@@ -23,4 +23,4 @@ async def get_leaderboard():
     rankTrend = previousSnapshotRank − currentLiveRank  (null if no prior snapshot)
     """
     # TODO: implement — delegate to leaderboard_service.get_live_leaderboard()
-    raise NotImplementedError
+    return []
