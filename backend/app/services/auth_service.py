@@ -17,6 +17,4 @@ Algorithm: HS256
 Expiry: settings.jwt_expire_hours (default 24 h, SRS R10)
 """
 
-from sqlalchemy.orm import Session
-
 # TODO: implement register_user(), login_user(), create_token(), verify_token()

@@ -12,6 +12,4 @@ Empty-activity case returns zeros and empty collections — never raises 404
 (SRS US-7).
 """
 
-from sqlalchemy.orm import Session
-
 # TODO: implement get_dashboard()
