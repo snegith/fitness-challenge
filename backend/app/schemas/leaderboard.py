@@ -11,13 +11,19 @@ rankTrend semantics (SRS §9.3):
     None/null → no prior snapshot exists for this user.
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class LeaderboardEntry(BaseModel):
     """Single entry in the leaderboard response array."""
-    # TODO: add rank, userId, name, totalPoints, rankTrend (Optional[int])
-    pass
+
+    rank: int
+    user_id: int = Field(..., alias="userId")
+    name: str
+    total_points: int = Field(..., alias="totalPoints")
+    rank_trend: int | None = Field(..., alias="rankTrend")
+
+    model_config = {"populate_by_name": True}
 
 
-# The endpoint returns a list[LeaderboardEntry] directly — no wrapper object.
+# The endpoint returns list[LeaderboardEntry] directly — no wrapper object.
