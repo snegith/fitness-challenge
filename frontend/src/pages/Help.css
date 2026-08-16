@@ -1,0 +1,10 @@
+.help { max-width: 640px; padding: var(--s6) 0 var(--s8); }
+.help__title { font-size: 1.5rem; font-weight: 800; margin-bottom: var(--s3); }
+.help__intro { color: var(--ink-muted); margin-bottom: var(--s6); line-height: 1.6; }
+.help__section { margin-bottom: var(--s6); }
+.help__section h2 { font-size: 1rem; font-weight: 700; margin-bottom: var(--s3); }
+.help__section p { font-size: 0.9375rem; line-height: 1.6; color: var(--ink-soft); margin-bottom: var(--s3); }
+.help__table { width: 100%; border-collapse: collapse; margin: var(--s4) 0; font-size: 0.875rem; }
+.help__table th { text-align: left; font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); padding: var(--s2) var(--s3); border-bottom: 2px solid var(--border); }
+.help__table td { padding: var(--s2) var(--s3); border-bottom: 1px solid var(--border); }
+.help__note { font-size: 0.8125rem; color: var(--ink-muted); font-style: italic; }

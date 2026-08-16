@@ -1,0 +1,44 @@
+/* NGOV Design Tokens */
+
+:root {
+  /* Core palette */
+  --ink: #1B1F2A;
+  --ink-soft: #2D3340;
+  --ink-muted: #6B7280;
+  --bone: #F1F2ED;
+  --bone-warm: #FAFAF7;
+  --brass: #C9A227;
+  --brass-dim: #A8872B;
+  --lane-blue: #2F5D8A;
+  --lane-blue-light: #EBF1F7;
+  --pr-red: #C1432E;
+  --border: #E2E3DE;
+  --border-strong: #CBCDC8;
+  --surface: #FFFFFF;
+
+  /* Typography */
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SF Mono", "Cascadia Code", "Fira Mono", Consolas,
+    "Liberation Mono", monospace;
+
+  /* Spacing (8px scale) */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+  --s8: 64px;
+
+  /* Layout */
+  --max-w: 960px;
+  --max-w-narrow: 480px;
+  --radius: 8px;
+  --radius-sm: 4px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(27,31,42,0.05);
+  --shadow-md: 0 4px 12px rgba(27,31,42,0.08);
+}
