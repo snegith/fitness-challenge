@@ -1,14 +1,41 @@
 /**
- * API client — fetch wrapper used by all pages and components.
- *
- * Responsibilities (SRS §10):
- *   - Attach `Authorization: Bearer <token>` on every request when a token
- *     is present in storage.
- *   - Public endpoints (register, login, leaderboard) receive no token header.
- *   - Return parsed JSON responses; surface HTTP errors as thrown objects.
- *
- * The token is stored client-side (localStorage).  It is a stateless JWT —
- * no server-side session exists (SRS §2.3).
+ * API client — fetch wrapper with token attachment.
  */
 
-// TODO: implement request(), get(), post() helpers
+function getToken() { return localStorage.getItem("token"); }
+
+async function request(method, path, { body, auth = true } = {}) {
+  const headers = { "Content-Type": "application/json" };
+  if (auth) {
+    const t = getToken();
+    if (t) headers["Authorization"] = `Bearer ${t}`;
+  }
+  const res = await fetch(path, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    const err = new Error(data?.message || `HTTP ${res.status}`);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
+export const get = (path, opts) => request("GET", path, opts);
+export const post = (path, body, opts) => request("POST", path, { body, ...opts });
+
+export const register = (firstName, lastName) =>
+  post("/api/auth/register", { firstName, lastName }, { auth: false });
+
+export const login = (firstName, lastName) =>
+  post("/api/auth/login", { firstName, lastName }, { auth: false });
+
+export const logActivity = (payload) => post("/api/activities", payload);
+
+export const getLeaderboard = () => get("/api/leaderboard", { auth: false });
+
+export const getDashboard = (userId) => get(`/api/users/${userId}/dashboard`);
