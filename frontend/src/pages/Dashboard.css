@@ -1,4 +1,4 @@
-.dash { padding-bottom: var(--s8); }
+.dash { max-width: 680px; margin: 0 auto; padding-bottom: var(--s8); }
 .dash__section { margin-top: var(--s7); }
 .dash__heading {
   font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.1em;
@@ -16,7 +16,7 @@
 .breakdown__fill { height: 100%; background: var(--lane-blue); border-radius: 3px; }
 .breakdown__pts { text-align: right; font-size: 0.8125rem; font-weight: 700; color: var(--brass); }
 
-/* Volume compact */
+/* Volume compact (sparse chart fallback for < 3 data points) */
 .vol-compact { display: flex; align-items: baseline; gap: var(--s3); }
 .vol-compact__num { font-size: 2rem; font-weight: 800; color: var(--ink); }
 .vol-compact__label { font-size: 0.8125rem; color: var(--ink-muted); }
@@ -24,9 +24,23 @@
 /* History table */
 .history { width: 100%; border-collapse: collapse; }
 .history__row { border-bottom: 1px solid var(--border); }
-.history__row td { padding: var(--s3) 0; }
+.history__row td { padding: var(--s3) 0; vertical-align: top; }
+.history__info { display: flex; flex-direction: column; gap: 2px; }
 .history__sport { font-size: 0.8125rem; font-weight: 500; text-transform: capitalize; }
-.history__pts { text-align: right; font-weight: 700; font-size: 0.875rem; color: var(--brass); }
+.history__time { font-size: 0.6875rem; color: var(--ink-muted); }
+.history__pts { text-align: right; font-weight: 700; font-size: 0.875rem; color: var(--brass); vertical-align: middle !important; }
+
+/* Section header with sort */
+.dash__section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s4); }
+.dash__section-header .dash__heading { margin-bottom: 0; }
+.dash__sort { display: flex; align-items: center; gap: var(--s1); }
+.dash__sort-label { font-size: 0.625rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
+.dash__sort-select {
+  font-family: var(--font-ui); font-size: 0.6875rem; font-weight: 600;
+  color: var(--ink); background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 4px 8px; cursor: pointer;
+}
+.dash__sort-select:focus { outline: 2px solid var(--lane-blue); outline-offset: 1px; }
 
 @media (max-width: 640px) {
   .breakdown__row { grid-template-columns: 5rem 1fr 3.5rem; }

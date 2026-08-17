@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import * as api from "../api/client";
 import ScoreDisplay from "../components/ScoreDisplay";
@@ -6,15 +6,52 @@ import { formatNumber } from "../utils/displayName";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
 import "./Dashboard.css";
 
+/**
+ * Format a UTC ISO timestamp to IST display string.
+ * Always uses Asia/Kolkata regardless of browser timezone.
+ */
+function formatIST(utcStr) {
+  try {
+    const d = new Date(utcStr.endsWith("Z") ? utcStr : utcStr + "Z");
+    if (isNaN(d.getTime())) return "";
+    return d.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } catch {
+    return "";
+  }
+}
+
 export default function Dashboard() {
   const { userId } = useAuth();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [sortBy, setSortBy] = useState("recent");
 
   useEffect(() => {
     if (!userId) return;
     api.getDashboard(userId).then(setData).catch(e => setError(e.message));
   }, [userId]);
+
+  const sortedActivities = useMemo(() => {
+    if (!data) return [];
+    const items = data.activityHistory.slice(0, 20);
+    switch (sortBy) {
+      case "oldest":
+        return [...items].sort((a, b) => (a.recordedAt || "").localeCompare(b.recordedAt || ""));
+      case "most-pts":
+        return [...items].sort((a, b) => b.points - a.points);
+      case "least-pts":
+        return [...items].sort((a, b) => a.points - b.points);
+      default:
+        return [...items].sort((a, b) => (b.recordedAt || "").localeCompare(a.recordedAt || ""));
+    }
+  }, [data, sortBy]);
 
   if (error) return <p className="dash-error">{error}</p>;
   if (!data) return <p className="dash-loading">Loading…</p>;
@@ -72,15 +109,38 @@ export default function Dashboard() {
 
       {/* Activity history */}
       <section className="dash__section">
-        <h2 className="dash__heading">Recent Activity</h2>
+        <div className="dash__section-header">
+          <h2 className="dash__heading">Recent Activity</h2>
+          {activityHistory.length > 0 && (
+            <label className="dash__sort">
+              <span className="dash__sort-label">Sort:</span>
+              <select
+                className="dash__sort-select"
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value)}
+                aria-label="Sort recent activity"
+              >
+                <option value="recent">Most Recent</option>
+                <option value="oldest">Oldest</option>
+                <option value="most-pts">Most Points</option>
+                <option value="least-pts">Least Points</option>
+              </select>
+            </label>
+          )}
+        </div>
         {activityHistory.length === 0 ? (
           <p className="dash__empty">No activities logged yet</p>
         ) : (
           <table className="history" aria-label="Activity history">
             <tbody>
-              {activityHistory.slice(0, 20).map(a => (
+              {sortedActivities.map(a => (
                 <tr key={a.activityId} className="history__row">
-                  <td className="history__sport">{a.sportType.replace(/_/g," ")}</td>
+                  <td className="history__info">
+                    <span className="history__sport">{a.sportType.replace(/_/g," ")}</span>
+                    {a.recordedAt && (
+                      <span className="history__time">{formatIST(a.recordedAt)}</span>
+                    )}
+                  </td>
                   <td className="history__pts mono">+{formatNumber(a.points)}</td>
                 </tr>
               ))}

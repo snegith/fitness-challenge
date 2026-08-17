@@ -6,7 +6,7 @@
 .score-display__value {
   font-size: 4.5rem;
   font-weight: 800;
-  color: var(--ink);
+  color: var(--brass);
   line-height: 1;
   overflow: hidden;
   display: inline-flex;
