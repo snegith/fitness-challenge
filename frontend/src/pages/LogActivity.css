@@ -1,32 +1,263 @@
-.log { max-width: var(--max-w-narrow); padding: var(--s6) 0 var(--s8); }
-.log__title { font-size: 1.5rem; font-weight: 800; margin-bottom: var(--s5); }
-.log__sports { display: flex; flex-wrap: wrap; gap: var(--s2); margin-bottom: var(--s5); }
-.log__sport {
-  font-size: 0.75rem; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase;
-  padding: 10px 16px; border: 1px solid var(--border); border-radius: var(--radius);
-  background: var(--surface); color: var(--ink-muted); cursor: pointer;
-  transition: all 0.15s;
+.log {
+  max-width: 540px;
+  margin: 0 auto;
+  padding: var(--s5) 0 var(--s8);
 }
-.log__sport:hover { border-color: var(--border-strong); color: var(--ink); }
-.log__sport--active { border-color: var(--ink); color: var(--ink); background: var(--bone-warm); }
 
-.log__form { display: flex; flex-direction: column; gap: var(--s4); }
-.log__duration { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }
-.log__field { display: flex; flex-direction: column; gap: var(--s1); }
-.log__label { font-size: 0.75rem; font-weight: 600; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em; }
-.log__error { color: var(--pr-red); font-size: 0.8125rem; }
+.log__card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: var(--s6) var(--s5);
+  box-shadow: var(--shadow-sm);
+}
+
+.log__title {
+  font-size: 1.375rem;
+  font-weight: 800;
+  margin-bottom: var(--s1);
+}
+
+.log__subtitle {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--s4);
+}
+
+/* ── Sport Grid ────────────────────────────────────────────────────────────── */
+
+.log__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s2);
+}
+
+.log__sport-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  padding: var(--s4) var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s;
+  min-height: 88px;
+}
+
+.log__sport-btn:hover {
+  border-color: var(--border-strong);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.log__sport-btn:focus-visible {
+  outline: 2px solid var(--lane-blue);
+  outline-offset: 2px;
+}
+
+.log__sport-btn--active {
+  border-color: var(--brass);
+  color: var(--brass);
+  background: #FDFBF3;
+  box-shadow: 0 0 0 1px var(--brass);
+}
+
+.log__sport-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── Divider ───────────────────────────────────────────────────────────────── */
+
+.log__divider {
+  height: 1px;
+  background: var(--border);
+  margin: var(--s5) 0;
+}
+
+/* ── Input Section ─────────────────────────────────────────────────────────── */
+
+.log__input-section {
+  /* progressive disclosure area */
+}
+
+.log__input-header {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  margin-bottom: var(--s4);
+  color: var(--ink);
+}
+
+.log__input-header svg {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  background: var(--bone);
+  border-radius: 50%;
+}
+
+.log__input-title {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.log__input-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  margin-top: 2px;
+}
+
+/* ── Form ──────────────────────────────────────────────────────────────────── */
+
+.log__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+
+.log__input {
+  font-family: var(--font-ui);
+  font-size: 1.125rem;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bone-warm);
+  color: var(--ink);
+  width: 100%;
+  transition: border-color 0.15s;
+}
+
+.log__input:focus {
+  outline: none;
+  border-color: var(--lane-blue);
+  background: #fff;
+}
+
+.log__duration {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s3);
+}
+
+.log__dur-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.log__dur-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.log__error {
+  color: var(--pr-red);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
 .log__submit {
-  margin-top: var(--s2); padding: 14px; font-size: 0.8125rem; font-weight: 700;
-  background: var(--ink); color: var(--bone); border: none; border-radius: var(--radius);
-  cursor: pointer; text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 14px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--ink);
+  color: var(--bone);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: opacity 0.15s;
 }
-.log__submit:hover { opacity: 0.9; }
-.log__submit:disabled { opacity: 0.5; }
 
-.log__result { text-align: center; }
-.log__again, .log__todash {
-  margin-top: var(--s3); margin-right: var(--s2); font-size: 0.8125rem; font-weight: 600;
-  padding: 10px 20px; border-radius: var(--radius); cursor: pointer;
-  border: 1px solid var(--border); background: transparent; color: var(--ink);
+.log__submit:hover { opacity: 0.9; }
+.log__submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Success State ─────────────────────────────────────────────────────────── */
+
+.log__success {
+  text-align: center;
+  padding: var(--s5) 0;
 }
-.log__todash { border-color: var(--lane-blue); color: var(--lane-blue); }
+
+.log__success-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-muted);
+  margin-bottom: var(--s2);
+}
+
+.log__success-sport {
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+  margin-top: var(--s2);
+  text-transform: capitalize;
+}
+
+.log__success-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--s3);
+  margin-top: var(--s5);
+}
+
+.log__btn-secondary,
+.log__btn-primary {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.log__btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--ink);
+}
+
+.log__btn-primary {
+  background: var(--lane-blue);
+  border: none;
+  color: #fff;
+}
+
+.log__btn-secondary:hover,
+.log__btn-primary:hover { opacity: 0.85; }
+
+/* ── Responsive ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .log__card {
+    padding: var(--s5) var(--s4);
+    border-radius: var(--radius);
+  }
+
+  .log__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .log__sport-btn {
+    min-height: 72px;
+    padding: var(--s3) var(--s2);
+  }
+}
