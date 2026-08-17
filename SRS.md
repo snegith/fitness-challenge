@@ -10,7 +10,8 @@
 | v1.0 | Draft | Initial SRS: registration, activity ingestion, scoring, live leaderboard, dashboard |
 | v1.1 | Post client Q&A | Added ranking-trend via daily snapshots, daily-steps upsert semantics, tie-break rule, timezone convention |
 | v2.0 | Final | Added optional basic session-token identification, login endpoint, token-derived identity on protected endpoints, IST timezone finalized |
-| v2.1 (this doc) | Final | Snapshot semantics corrected (represents the completed previous day); timestamp storage convention fixed (UTC storage, IST business-date computation, no more "confirm during implementation"); `recordedAt` is now server-generated only; daily-steps uniqueness moved to an explicit `activity_date` column |
+| v2.1 | Final | Snapshot semantics corrected (represents the completed previous day); timestamp storage convention fixed (UTC storage, IST business-date computation, no more "confirm during implementation"); `recordedAt` is now server-generated only; daily-steps uniqueness moved to an explicit `activity_date` column |
+| v2.2 (this doc) | Post-implementation | Documentation pass: explicit `activityHistory` ordering (recorded_at DESC), `volumeOverTime` ordering (activity_date ASC, sparse), leaderboard zero-activity user inclusion, daily-steps replacement semantics clarified, frontend requirements added (§14) |
 
 ---
 
@@ -64,11 +65,11 @@ Single user class. Every registered user can log activities, view the (public) l
 | FR-7 | System shall reject an activity submission with `400` if the sport/metric pairing is invalid or the payload is malformed. |
 | FR-8 | System shall compute points for every accepted activity per the conversion table in §9, applying the specified flooring rule. |
 | FR-9 | System shall persist computed points alongside the raw activity data. |
-| FR-10 | For `daily_steps`, if a record already exists for the authenticated user on the current IST calendar date, the system shall **update** that record's step count and recompute its points, rather than inserting a new row. |
-| FR-11 | System shall expose a live global leaderboard ranked by total accumulated points, descending, with deterministic tie-breaking (§9.2). |
+| FR-10 | For `daily_steps`, if a record already exists for the authenticated user on the current IST calendar date, the system shall **replace** (not accumulate) that record's step count with the new value and recompute its points, rather than inserting a new row. The client submits the cumulative daily total from their device. |
+| FR-11 | System shall expose a live global leaderboard ranked by total accumulated points, descending, with deterministic tie-breaking (§9.2). The leaderboard includes all registered users, including those with zero activities (displayed with `totalPoints: 0`). |
 | FR-12 | System shall generate a leaderboard snapshot at 00:00 IST, storing each user's rank and total points for the **completed previous IST calendar day** (i.e. the 00:00 IST run on Aug 14 produces the Aug 13 snapshot). |
 | FR-13 | System shall include a `rankTrend` value on each leaderboard entry, computed as `previousRank − currentRank` against the most recent prior snapshot; `null` if no prior snapshot exists for that user. |
-| FR-14 | System shall expose a per-user dashboard showing activity history, point volume over time, and a breakdown of points by sport. |
+| FR-14 | System shall expose a per-user dashboard showing activity history (ordered by `recorded_at` descending), point volume over time (ordered by `activity_date` ascending, sparse — only dates with activity), and a breakdown of points by sport. |
 | FR-15 | System shall reject activity submissions from a token whose `userId` does not resolve to an existing user, or dashboard requests for a `userId` that does not match the authenticated token's `userId`. |
 | FR-16 | System shall provide a manually-triggerable snapshot generation path (CLI command), calling the identical function used by the scheduled job, for testing/demo purposes. |
 
@@ -289,6 +290,8 @@ Request:  { "firstName": "Ada", "lastName": "Lovelace" }
 ```
 `rankTrend = previousRank − currentRank` (positive = improved); `null` if the user has no prior snapshot. Ties broken by `created_at ASC, userId ASC`.
 
+**Zero-activity users**: The leaderboard includes ALL registered users, including those who have not yet logged any activity. These users appear with `totalPoints: 0` via a `LEFT JOIN` / `COALESCE(SUM(points), 0)` query. This ensures newly registered users see themselves on the leaderboard immediately.
+
 ### `GET /api/users/{id}/dashboard` (requires `Authorization: Bearer <token>`; token's `userId` must equal `{id}`)
 ```json
 200: {
@@ -302,6 +305,11 @@ Request:  { "firstName": "Ada", "lastName": "Lovelace" }
 401: { "error": "UNAUTHORIZED", "message": "Missing or invalid session token." }
 ```
 Empty-activity case returns `200` with `totalPoints: 0`, empty arrays, empty `sportBreakdown` — never a `404`.
+
+**Response field semantics**:
+- `activityHistory` is ordered by `recorded_at` **descending** (most recent activity first).
+- `volumeOverTime` is ordered by `activity_date` (the stored IST calendar date) **ascending**. It is **sparse** — only dates with at least one logged activity are included; dates with no activity are not zero-filled.
+- `sportBreakdown` maps each `sport_type` the user has logged to the sum of points for that sport. Sports with zero points are omitted.
 
 ### Endpoint Summary
 
@@ -456,3 +464,50 @@ since the token is a stateless JWT).
 | R11 | `recordedAt` is server-generated only; client cannot supply or backdate it | Removes timezone-interpretation ambiguity and a leaderboard-gaming vector (backdating activities) | None identified | Resolved |
 | R12 | Timestamps stored in UTC; all date-bucketing computed by the backend (`zoneinfo`) into an explicit `activity_date` column, not via SQL offset expressions | Portable, debuggable, avoids the fragility of expression-based indexes; single source of truth reused by steps-uniqueness, `volumeOverTime`, and snapshot targeting | None identified | Resolved |
 | R13 | Midnight (00:00 IST) snapshot represents the just-completed previous day, not the day starting | Required for `rankTrend` to compare against a fully-settled day rather than a day still in progress | Getting this backwards would make every trend value off-by-one-day and effectively meaningless | Resolved |
+
+---
+
+## 14. Frontend Requirements
+
+The following documents the implemented frontend behaviour as user-facing requirements.
+
+### 14.1 Navigation & Authentication Flow
+
+- FR-FE-1: When no token is stored, the user sees Register and Login pages. Authenticated routes (Dashboard, Log Activity) redirect to Login.
+- FR-FE-2: When a valid token is stored, the user is redirected from Register/Login to Dashboard. The navigation displays: Dashboard, Log Activity, Leaderboard, Help, and Log Out.
+- FR-FE-3: Leaderboard and Help are accessible without authentication (public pages).
+- FR-FE-4: Log Out clears the stored token and redirects to Login. No server-side session invalidation occurs (JWT is stateless).
+- FR-FE-5: The default route (`/`) redirects authenticated users to Dashboard and unauthenticated users to Leaderboard.
+
+### 14.2 Activity Logging
+
+- FR-FE-6: The Log Activity page presents six sport types as a radio-button group: Running, Walking, Cycling, Swimming, Gym, Daily Steps.
+- FR-FE-7: Selecting a sport conditionally renders the appropriate input field(s): distance (km) for Running/Walking/Cycling; Hours + Minutes for Swimming/Gym; step count for Daily Steps.
+- FR-FE-8: Duration-based sports (Swimming, Gym) accept separate Hours and Minutes inputs. The frontend converts these to `durationSec = hours × 3600 + minutes × 60` before submission.
+- FR-FE-9: Client-side validation blocks submission of invalid values (empty, negative, zero distance) with an inline error message.
+- FR-FE-10: On successful submission, the earned points are displayed prominently. The user can log another activity or navigate to the dashboard.
+- FR-FE-11: The frontend never computes authoritative points. Points are always taken from the server response.
+
+### 14.3 Dashboard
+
+- FR-FE-12: The Dashboard displays the user's total points in a prominent score display with odometer-style animation on change.
+- FR-FE-13: The Sport Breakdown section shows a horizontal bar chart of points per sport, sorted by points descending. Empty state: "No activities yet."
+- FR-FE-14: The Volume Over Time section shows an area chart (Recharts) of points per day when 3+ data points exist. For 1–2 data points, a compact numeric summary is shown. Empty state: "No data yet."
+- FR-FE-15: The Recent Activity section shows up to 20 most recent activities (sport type + points earned). Empty state: "No activities logged yet."
+
+### 14.4 Leaderboard
+
+- FR-FE-16: The Leaderboard page displays all participants in a table with columns: Rank, Player (title-cased name), Points (comma-formatted), Trend.
+- FR-FE-17: Rank trend display: positive → green up-arrow with magnitude; negative → red down-arrow with magnitude; zero → dash; null → "NEW" badge.
+- FR-FE-18: The current authenticated user's row (if any) is visually highlighted.
+- FR-FE-19: Empty leaderboard state: "No participants yet."
+
+### 14.5 Help Page
+
+- FR-FE-20: The Help page explains the scoring system (all six sports with rates and examples), activity logging instructions, daily steps replacement semantics, dashboard contents, leaderboard ranking and trend logic, and account/identity model.
+
+### 14.6 Timestamp & Number Display
+
+- FR-FE-21: Points are formatted with locale-appropriate thousand separators (e.g., "5,090").
+- FR-FE-22: Player names are displayed in title case on the leaderboard.
+

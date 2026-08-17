@@ -1,0 +1,95 @@
+==================================================
+NGOV — How to Run the Application
+==================================================
+
+--------------------------------------------------
+BACKEND (FastAPI + SQLite)
+--------------------------------------------------
+
+1. Open a terminal and navigate to the backend folder:
+
+   cd backend
+
+2. Install Python dependencies (first time only):
+
+   pip install -r requirements.txt
+
+3. Create a .env file from the example (first time only):
+
+   copy .env.example .env
+
+4. Run the backend server:
+
+   uvicorn app.main:app --reload --port 8000
+
+   The API will be available at: http://localhost:8000
+   Docs (Swagger UI):           http://localhost:8000/docs
+
+--------------------------------------------------
+FRONTEND (React + Vite)
+--------------------------------------------------
+
+1. Open a SEPARATE terminal and navigate to the frontend folder:
+
+   cd frontend
+
+2. Install Node dependencies (first time only):
+
+   npm install
+
+3. Run the frontend dev server:
+
+   npm run dev
+
+   The app will be available at: http://localhost:5173
+   (Vite proxies /api requests to the backend at localhost:8000)
+
+--------------------------------------------------
+BOTH RUNNING TOGETHER
+--------------------------------------------------
+
+You need TWO terminals running simultaneously:
+
+   Terminal 1 (backend):  cd backend  → uvicorn app.main:app --reload --port 8000
+   Terminal 2 (frontend): cd frontend → npm run dev
+
+Then open http://localhost:5173 in your browser.
+
+--------------------------------------------------
+RUNNING TESTS
+--------------------------------------------------
+
+Backend tests:
+   cd backend
+   python -m pytest
+
+Backend linting:
+   cd backend
+   python -m ruff check .
+
+Frontend tests:
+   cd frontend
+   npm test
+
+Frontend production build:
+   cd frontend
+   npm run build
+
+--------------------------------------------------
+CLI — Manual Snapshot Generation
+--------------------------------------------------
+
+From the backend folder:
+
+   python -m app.jobs                     (generates snapshot for yesterday IST)
+   python -m app.jobs --date 2026-08-13   (generates snapshot for a specific past date)
+
+--------------------------------------------------
+NOTES
+--------------------------------------------------
+
+- Python 3.11+ required
+- Node.js 18+ required
+- The backend creates a fitness.db SQLite file on first run
+- JWT_SECRET in .env should be changed to a random string for any real use
+- The scheduler runs automatically inside the backend process (snapshot at 00:00 IST)
