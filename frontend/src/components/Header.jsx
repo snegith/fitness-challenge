@@ -15,7 +15,7 @@ export default function Header() {
     <header className="header">
       <div className="header__inner wrap">
         <NavLink to={token ? "/dashboard" : "/leaderboard"} className="header__brand">
-          NGOV
+          Podium
         </NavLink>
         <nav className="header__nav" aria-label="Main navigation">
           {token && (

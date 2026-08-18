@@ -27,7 +27,7 @@ export default function Register() {
   return (
     <div className="auth">
       <h1 className="auth__title">Register</h1>
-      <p className="auth__sub">Create your NGOV identity</p>
+      <p className="auth__sub">Create your Podium identity</p>
       <form className="auth__form" onSubmit={handleSubmit}>
         <label className="auth__field"><span>First Name</span>
           <input type="text" value={firstName} onChange={e=>setFirstName(e.target.value)} autoFocus />

@@ -1,6 +1,6 @@
-# NGOV — Fitness Challenge Application
+# Podium — Fitness Challenge Application
 
-NGOV is a fitness activity scoring application where users log physical activities, receive points according to defined scoring rules, view their personal performance dashboard, and compare their score on a public global leaderboard.
+Podium is a fitness activity scoring application where users log physical activities, receive points according to defined scoring rules, view their personal performance dashboard, and compare their score on a public global leaderboard.
 
 ## Core Features
 

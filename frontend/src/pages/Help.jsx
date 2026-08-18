@@ -3,9 +3,9 @@ import "./Help.css";
 export default function Help() {
   return (
     <div className="help">
-      <h1 className="help__title">How NGOV Works</h1>
+      <h1 className="help__title">How Podium Works</h1>
       <p className="help__intro">
-        NGOV converts different physical activities into a single comparable point score.
+        Podium converts different physical activities into a single comparable point score.
         Log your activities, earn points, and compete on the global leaderboard.
       </p>
 
